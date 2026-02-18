@@ -14,6 +14,8 @@ export const sendMessage = async (message: string, model: string = 'phi-2', user
       model_name: model,
       user_context: userContext,
       is_advisor: isAdvisor
+    }, {
+      timeout: 60000 // 60 seconds timeout
     });
     return response.data;
   } catch (error) {

@@ -153,13 +153,33 @@ class ChatbotBackend:
             raise # Re-raise to let the caller know it failed
 
     def setup_rag_chain(self) -> None:
-        documents = self.process_documents()
-        if not documents:
-            logger.warning("No documents to index.")
-            return
+        index_path = "faiss_index"
+        
+        # Try to load existing index if available
+        if os.path.exists(index_path):
+            logger.info("Loading existing FAISS index from disk...")
+            try:
+                self.vector_store = FAISS.load_local(
+                    index_path, 
+                    self.embedding_model,
+                    allow_dangerous_deserialization=True
+                )
+                logger.info("FAISS index loaded successfully.")
+            except Exception as e:
+                logger.error(f"Error loading FAISS index: {e}")
+                self.vector_store = None
 
-        self.vector_store = FAISS.from_documents(documents, self.embedding_model)
-        # Note: We won't bake the retriever into the chain anymore to allow dynamic filtering
+        if not self.vector_store:
+            logger.info("Creating new FAISS index from documents (this may take a few minutes)...")
+            documents = self.process_documents()
+            if not documents:
+                logger.warning("No documents to index.")
+                return
+
+            self.vector_store = FAISS.from_documents(documents, self.embedding_model)
+            # Save the index for next time
+            self.vector_store.save_local(index_path)
+            logger.info(f"FAISS index created and saved to {index_path}")
 
         template = """
         <|start_header_id|>system<|end_header_id|>
@@ -179,7 +199,7 @@ class ChatbotBackend:
             input_variables=["context", "question", "priority_instruction"],
             template=template
         )
-
+        
         # Chain now expects 'context' to be passed in, not retrieved automatically
         if self.pipe:
             self.rag_chain = (

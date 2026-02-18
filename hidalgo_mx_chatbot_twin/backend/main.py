@@ -67,9 +67,10 @@ async def startup_event():
             logger.info(f"Found {len(existing_files)} existing files in folders. Initializing chatbot...")
             try:
                 chatbot_instance = ChatbotBackend(existing_files)
-                logger.info("Chatbot initialized with existing documents.")
+                logger.info("\n" + "="*50 + "\n¡ASISTENTE VIRTUAL LISTO PARA PREGUNTAS!\n" + "="*50)
             except Exception as e:
-                logger.error(f"Failed to auto-load documents: {e}")
+                logger.error(f"Error al inicializar el chatbot: {e}")
+                logger.info("El servidor seguirá corriendo, pero intentará cargar los modelos al recibir la primera pregunta.")
     else:
         os.makedirs(UPLOAD_DIR, exist_ok=True)
 
