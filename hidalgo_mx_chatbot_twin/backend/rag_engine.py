@@ -176,16 +176,30 @@ class ChatbotBackend:
                 self.vector_store = None
 
         if not self.vector_store:
-            logger.info("Creating new FAISS index from documents (this may take a few minutes)...")
+            logger.info("📦 Creando nuevo índice (etapa de aprendizaje de fragmentos)...")
             documents = self.process_documents()
             if not documents:
-                logger.warning("No documents to index.")
+                logger.warning("No hay documentos para indexar.")
                 return
 
-            self.vector_store = FAISS.from_documents(documents, self.embedding_model)
+            # Batch indexing to show progress
+            batch_size = 500
+            total_chunks = len(documents)
+            
+            # Initialize with first batch
+            first_batch = documents[:batch_size]
+            self.vector_store = FAISS.from_documents(first_batch, self.embedding_model)
+            logger.info(f"🧠 Indexando: {min(batch_size, total_chunks)}/{total_chunks} fragmentos...")
+
+            # Add remaining documents in batches
+            for i in range(batch_size, total_chunks, batch_size):
+                batch = documents[i : i + batch_size]
+                self.vector_store.add_documents(batch)
+                logger.info(f"🧠 Indexando: {min(i + batch_size, total_chunks)}/{total_chunks} fragmentos...")
+
             # Save the index for next time
             self.vector_store.save_local(index_path)
-            logger.info(f"FAISS index created and saved to {index_path}")
+            logger.info(f"💾 Índice guardado en disco: {index_path}")
 
         template = """
         <|start_header_id|>system<|end_header_id|>
