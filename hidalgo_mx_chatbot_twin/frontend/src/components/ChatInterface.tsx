@@ -36,11 +36,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, input, setInput
     };
 
     return (
-        <div className="flex-1 flex flex-col h-screen bg-[#0f0f0f] relative">
+        <div className="flex-1 flex flex-col h-screen bg-[#f9fafb] relative">
             {/* Header */}
-            <div className="h-16 border-b border-[#333] flex items-center px-6 bg-[#1a1a1a]">
-                <span className="text-gray-400 text-sm">Context: </span>
-                <span className="ml-2 text-white font-medium">HidalgoMX Programas Sociales</span>
+            <div className="h-20 border-b-4 border-[#bc955c] flex items-center px-8 bg-[#691c32] shadow-lg">
+                <div className="flex flex-col">
+                    <span className="text-white font-black text-2xl tracking-tight">ASISTENTE VIRTUAL</span>
+                    <span className="text-[#bc955c] text-sm font-bold uppercase tracking-widest">Gobierno del Estado de Hidalgo</span>
+                </div>
             </div>
 
             {/* Messages Area */}
@@ -54,15 +56,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, input, setInput
                             className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
                             <div
-                                className={`max-w-[80%] rounded-2xl p-4 flex gap-3 ${msg.role === 'user'
-                                    ? 'bg-[#2d2d2d] text-white rounded-tr-none'
-                                    : 'bg-[#1e1e1e] text-gray-200 rounded-tl-none'
+                                className={`max-w-[85%] rounded-2xl p-6 flex gap-4 shadow-md ${msg.role === 'user'
+                                    ? 'bg-[#691c32] text-white rounded-tr-none'
+                                    : 'bg-white text-gray-800 rounded-tl-none border-2 border-[#691c32]'
                                     }`}
                             >
                                 <div className="mt-1 flex-shrink-0">
-                                    {msg.role === 'user' ? <User size={18} className="text-blue-400" /> : <Bot size={18} className="text-green-400" />}
+                                    {msg.role === 'user' ? <User size={32} className="text-[#bc955c]" /> : <Bot size={32} className="text-[#691c32]" />}
                                 </div>
-                                <div className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+                                <div className="text-2xl md:text-3xl font-medium leading-relaxed whitespace-pre-wrap">{msg.content}</div>
                             </div>
                         </motion.div>
                     ))}
@@ -73,13 +75,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, input, setInput
                             animate={{ opacity: 1, y: 0 }}
                             className="flex w-full justify-start"
                         >
-                            <div className="bg-[#1e1e1e] text-gray-200 rounded-2xl rounded-tl-none p-4 flex gap-3 items-center">
-                                <Bot size={18} className="text-green-400" />
-                                <div className="flex gap-1">
-                                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            <div className="bg-white text-gray-800 rounded-2xl rounded-tl-none p-6 flex gap-4 items-center border-2 border-[#691c32] shadow-md">
+                                <Bot size={32} className="text-[#691c32]" />
+                                <div className="flex gap-2">
+                                    <span className="w-3 h-3 bg-[#bc955c] rounded-full animate-pulse" />
+                                    <span className="w-3 h-3 bg-[#bc955c]/60 rounded-full animate-pulse" style={{ animationDelay: '200ms' }} />
+                                    <span className="w-3 h-3 bg-[#bc955c]/30 rounded-full animate-pulse" style={{ animationDelay: '400ms' }} />
                                 </div>
+                                <span className="text-xl font-bold text-[#691c32] ml-2 animate-pulse uppercase tracking-widest">PROCESANDO...</span>
                             </div>
                         </motion.div>
                     )}
@@ -88,27 +91,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, input, setInput
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t border-[#333] bg-[#0f0f0f]">
-                <div className="max-w-4xl mx-auto relative">
+            <div className="p-6 border-t border-gray-200 bg-white shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+                <div className="max-w-5xl mx-auto relative">
                     <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Type your message here..."
-                        className="w-full bg-[#1e1e1e] text-white border border-[#333] rounded-xl pl-4 pr-12 py-3 focus:outline-none focus:border-[#555] resize-none overflow-hidden min-h-[50px] max-h-[200px]"
+                        placeholder="Escribe aquí tu pregunta sobre programas sociales..."
+                        className="w-full bg-white text-black border-4 border-[#691c32] rounded-2xl pl-6 pr-16 py-5 focus:outline-none focus:ring-4 focus:ring-[#bc955c]/30 resize-none overflow-hidden min-h-[100px] max-h-[350px] text-2xl md:text-3xl font-bold placeholder:text-gray-300 shadow-inner"
                         rows={1}
                         disabled={loading}
+                        style={{ color: 'black', backgroundColor: 'white' }}
                     />
                     <button
                         onClick={onSend}
                         disabled={!input.trim() || loading}
-                        className="absolute right-3 bottom-3 p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="absolute right-6 bottom-6 p-4 bg-[#691c32] hover:bg-[#822340] text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg active:scale-95"
                     >
-                        {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                        {loading ? <Loader2 size={32} className="animate-spin" /> : <Send size={32} />}
                     </button>
                 </div>
-                <p className="text-center text-xs text-gray-600 mt-2">
-                    AI generated content can be inaccurate. Double check important information.
+                <p className="text-center text-sm text-[#bc955c] font-bold mt-4 uppercase tracking-widest">
+                    Hidalgo sigue avanzado • Gobierno con Acento Social
                 </p>
             </div>
         </div>

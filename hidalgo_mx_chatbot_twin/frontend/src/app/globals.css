@@ -3,15 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 236, 237, 238;
-  --background-start-rgb: 9, 9, 11;
-  /* Zinc-950 */
-  --background-end-rgb: 9, 9, 11;
+  --foreground-rgb: 26, 26, 26;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 245, 245, 245;
+
+  --hidalgo-guinda: #691c32;
+  --hidalgo-mostaza: #bc955c;
+  --hidalgo-verde: #235b4e;
+  --hidalgo-blanco: #ffffff;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-start-rgb));
+  background: white;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
 }

@@ -42,10 +42,13 @@ git push -u origin main
 
 ¡Listo! Si refrescas la página de GitHub, verás tus archivos subidos.
 
-## Notas sobre Seguridad
+## Notas sobre Seguridad y Repositorios Anidados
 El archivo `.gitignore` ya está configurado para evitar subir:
 *   Carpetas de dependencias (`node_modules`, `venv`)
 *   Archivos de entorno y secretos (`.env`, `advisor_keys.json`)
 *   Archivos pesados (`*.pdf`, `*.zip`)
 
-**Nunca** fuerces la subida de estos archivos manuálmente.
+> [!WARNING]
+> Si tienes carpetas que contienen su propio `.git` (repositorios anidados), podrían subirse vacías. Si esto ocurre, elimina la carpeta `.git` oculta dentro de ellas y vuelve a añadirlas.
+
+**Nunca** fuerces la subida de estos archivos manualmente.

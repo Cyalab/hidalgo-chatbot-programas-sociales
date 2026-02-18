@@ -14,7 +14,7 @@ from rules_engine import RulesEngine
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="HidalgoMX Chatbot API", description="Backend for the Social Security Chatbot Twin")
+app = FastAPI(title="HidalgoMX Chatbot API", description="Backend para Chatbot de programas sociales del estado de Hidalgo")
 
 # CORS setup (allow frontend to connect)
 app.add_middleware(
@@ -30,9 +30,8 @@ chatbot_instance = None
 UPLOAD_DIR = "uploaded_pdfs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-from rules_engine import RulesEngine
-
 # ... (global/setup)
+# Redundant RulesEngine import removed
 rules_engine = RulesEngine()
 
 class UserContext(BaseModel):
@@ -40,6 +39,7 @@ class UserContext(BaseModel):
     age_group: Optional[str] = None # "Adulto Mayor", "Joven", etc.
     region: Optional[str] = None # "Huasteca", "Zempola", etc.
     occupation: Optional[str] = None # "Ejidatario", etc.
+    gender: Optional[str] = None # "Hombre", "Mujer", "Otro"
     is_student: Optional[bool] = None
     parents_residence: Optional[str] = None
     children: Optional[int] = None
@@ -48,6 +48,7 @@ class ChatRequest(BaseModel):
     message: str
     model_name: str = "phi-2" # Options: "phi-2", "socialite-llama"
     user_context: Optional[UserContext] = None
+    is_advisor: bool = False
 
 class ChatResponse(BaseModel):
     response: str
@@ -55,9 +56,22 @@ class ChatResponse(BaseModel):
 
 @app.on_event("startup")
 async def startup_event():
+    global chatbot_instance
     logger.info("Server starting up...")
-    # Initialize chatbot with any existing PDFs if needed, or wait for upload
-    pass
+    
+    # Auto-load existing PDFs recursively
+    if os.path.exists(UPLOAD_DIR):
+        from pathlib import Path
+        existing_files = [str(p) for p in Path(UPLOAD_DIR).rglob("*.pdf")]
+        if existing_files:
+            logger.info(f"Found {len(existing_files)} existing files in folders. Initializing chatbot...")
+            try:
+                chatbot_instance = ChatbotBackend(existing_files)
+                logger.info("Chatbot initialized with existing documents.")
+            except Exception as e:
+                logger.error(f"Failed to auto-load documents: {e}")
+    else:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.post("/upload")
 async def upload_files(files: List[UploadFile] = File(...)):
@@ -71,12 +85,13 @@ async def upload_files(files: List[UploadFile] = File(...)):
                 shutil.copyfileobj(file.file, buffer)
             saved_files.append(file_path)
         
-        # Re-initialize chatbot with new files
-        # NOTE: In a real multi-user app, this should be handled per-session or background task
-        logger.info(f"Initializing chatbot with {len(saved_files)} files...")
-        chatbot_instance = ChatbotBackend(saved_files)
+        # Re-initialize chatbot with ALL files (cumulative & recursive)
+        from pathlib import Path
+        all_files = [str(p) for p in Path(UPLOAD_DIR).rglob("*.pdf")]
+        logger.info(f"Re-initializing chatbot with {len(all_files)} total files (including folders)...")
+        chatbot_instance = ChatbotBackend(all_files)
         
-        return {"message": f"Successfully uploaded and processed {len(files)} files", "filenames": [f.filename for f in files]}
+        return {"message": f"Successfully uploaded {len(files)} files. Total knowledge base: {len(all_files)} files.", "filenames": [f.filename for f in files]}
     except Exception as e:
         logger.error(f"Error calling upload: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -98,16 +113,18 @@ async def chat(request: ChatRequest):
                 logger.info(f"Prioritized Programs for user: {prioritized_programs}")
 
         # 2. Generate Response with Context
+        user_info = request.user_context.dict(exclude_none=True) if request.user_context else {}
         response = chatbot_instance.answer_question(
             request.message, 
             model_name=request.model_name,
             prioritized_programs=prioritized_programs,
-            is_advisor=request.is_advisor
+            is_advisor=request.is_advisor,
+            user_info=user_info
         )
         return ChatResponse(response=response)
     except Exception as e:
-        logger.error(f"Error in chat endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"CRITICAL ERROR in chat endpoint: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
 @app.get("/health")
 def health_check():

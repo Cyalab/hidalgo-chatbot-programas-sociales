@@ -12,10 +12,10 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_huggingface import HuggingFacePipeline
 from langchain_core.documents import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from huggingface_hub import login
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
@@ -41,6 +41,10 @@ class ChatbotBackend:
         self.current_model_name = "microsoft/phi-2" # Default
 
         self.load_environment()
+        
+        # Create offload directory if it doesn't exist
+        os.makedirs("offload", exist_ok=True)
+        
         self.initialize_components()
 
     def load_environment(self) -> None:
@@ -89,7 +93,9 @@ class ChatbotBackend:
             separators=["\n\n", "\n", " ", ""]
         )
         
-        for pdf_path in self.pdf_files:
+        total_files = len(self.pdf_files)
+        for i, pdf_path in enumerate(self.pdf_files):
+            logger.info(f"[{i+1}/{total_files}] Processing: {pdf_path.name}")
             data = self.extract_structure(pdf_path)
             for item in data:
                 content = item["contenido"]
@@ -121,12 +127,16 @@ class ChatbotBackend:
                 logger.info(f"Initializing Model: {model_name}...")
                 self.tokenizer = AutoTokenizer.from_pretrained(model_name)
                 
-                # Setup pipeline
+                # Setup pipeline with memory-efficient settings
+                # Use float16 if possible to save VRAM/RAM
+                dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+                
                 self.pipe = pipeline(
                     "text-generation",
                     model=model_name,
-                    torch_dtype=torch.float32,
+                    torch_dtype=dtype,
                     device_map="auto",
+                    model_kwargs={"offload_folder": "offload"},
                     max_new_tokens=512,
                     do_sample=True,
                     temperature=0.3,
@@ -134,9 +144,13 @@ class ChatbotBackend:
                 )
 
                 self.setup_rag_chain()
+                logger.info(f"Model {model_name} loaded successfully.")
         except Exception as e:
-            logger.error(f"Error initializing components: {e}")
-            raise
+            logger.error(f"CRITICAL ERROR initializing components for {model_name}: {e}")
+            # Ensure attributes exist even if loading failed
+            self.pipe = None
+            self.rag_chain = None
+            raise # Re-raise to let the caller know it failed
 
     def setup_rag_chain(self) -> None:
         documents = self.process_documents()
@@ -167,11 +181,15 @@ class ChatbotBackend:
         )
 
         # Chain now expects 'context' to be passed in, not retrieved automatically
-        self.rag_chain = (
-            self.prompt
-            | HuggingFacePipeline(pipeline=self.pipe)
-            | StrOutputParser()
-        )
+        if self.pipe:
+            self.rag_chain = (
+                self.prompt
+                | HuggingFacePipeline(pipeline=self.pipe)
+                | StrOutputParser()
+            )
+        else:
+            logger.error("Cannot setup RAG chain: Model pipe is None.")
+            self.rag_chain = None
 
     def reload_model_if_needed(self, new_model_name: str):
         if new_model_name != self.current_model_name:
@@ -185,24 +203,34 @@ class ChatbotBackend:
             
             self.current_model_name = new_model_name
             
-            # Clean up old model to free VRAM
-            del self.pipe
-            del self.tokenizer
+            # Clean up old model safely
+            self.pipe = None
+            self.tokenizer = None
             with self.gpu_memory_management():
                 pass
             
             # Re-initialize
             self.initialize_components(model_name=hf_id)
 
-    def answer_question(self, question: str, model_name: str = "phi-2", prioritized_programs: List[str] = [], is_advisor: bool = False) -> str:
+    def answer_question(self, question: str, model_name: str = "phi-2", prioritized_programs: List[str] = [], is_advisor: bool = False, user_info: Dict[str, Any] = {}) -> str:
         self.reload_model_if_needed(model_name)
         
         if not self.vector_store:
             return "El sistema no está listo. Por favor sube documentos primero."
             
+        profile_summary = []
+        if user_info.get("gender"): profile_summary.append(f"Sexo: {user_info['gender']}")
+        if user_info.get("age_group"): profile_summary.append(f"Perfil: {user_info['age_group']}")
+        if user_info.get("region"): profile_summary.append(f"Región: {user_info['region']}")
+        
+        demographic_context = f"PERFIL DEL USUARIO: {', '.join(profile_summary)}." if profile_summary else ""
+        
         priority_msg = ""
         if prioritized_programs:
             priority_msg = f"ATENCIÓN: El usuario califica con prioridad para los siguientes programas: {', '.join(prioritized_programs)}. Asegúrate de mencionar si estos programas aparecen en el contexto y recomendarlos encarecidamente."
+        
+        if demographic_context:
+            priority_msg = f"{demographic_context}\n{priority_msg}"
             
         # Dynamic Retrieval based on Role
         search_kwargs = {"k": 10}
@@ -214,9 +242,16 @@ class ChatbotBackend:
         docs = self.vector_store.similarity_search(question, **search_kwargs)
         context_str = "\n\n".join([d.page_content for d in docs])
             
+        if not self.rag_chain:
+            return "El modelo de IA no pudo cargarse debido a falta de memoria o un error técnico. Por favor, intenta usar un modelo más ligero (Phi-2) o reinicia el servidor."
+            
         with self.gpu_memory_management():
-            return self.rag_chain.invoke({
-                "question": question, 
-                "priority_instruction": priority_msg,
-                "context": context_str
-            })
+            try:
+                return self.rag_chain.invoke({
+                    "question": question, 
+                    "priority_instruction": priority_msg,
+                    "context": context_str
+                })
+            except Exception as e:
+                logger.error(f"Error during RAG chain invocation: {e}")
+                return f"Error al generar respuesta: {str(e)}"

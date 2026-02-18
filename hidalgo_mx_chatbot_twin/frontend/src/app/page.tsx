@@ -12,7 +12,7 @@ interface Message {
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Hola, soy tu asistente de Seguridad Social de Hidalgo. ¿En qué puedo ayudarte hoy?' }
+    { role: 'assistant', content: 'Hola, soy tu asistente de Programas Sociales de Hidalgo. ¿En qué puedo ayudarte hoy?' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,12 +42,12 @@ export default function Home() {
 
   const handleNewChat = () => {
     setMessages([
-      { role: 'assistant', content: 'Hola, soy tu asistente de Seguridad Social de Hidalgo. ¿En qué puedo ayudarte hoy?' }
+      { role: 'assistant', content: 'Hola, soy tu asistente de Programas Sociales de Hidalgo. ¿En qué puedo ayudarte hoy?' }
     ]);
   };
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] text-white font-sans overflow-hidden">
+    <div className="flex h-screen bg-[#1a1a1a] text-white font-sans overflow-hidden">
       <Sidebar
         currentModel={currentModel}
         setModel={setModel}
