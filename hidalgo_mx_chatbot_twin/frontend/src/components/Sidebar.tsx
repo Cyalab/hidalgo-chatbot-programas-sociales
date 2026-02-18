@@ -166,13 +166,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModel, setModel, onNewChat, se
                         <div className="space-y-1">
                             <label className="text-xs uppercase text-gray-400 font-black">Sexo</label>
                             <select
-                                className="w-full bg-gray-50 border-2 border-gray-100 rounded-lg px-3 py-3 focus:outline-none focus:border-[#691c32] text-base font-bold transition-all text-gray-800"
+                                className="w-full bg-white border-2 border-gray-200 rounded-lg px-3 py-3 focus:outline-none focus:border-[#691c32] text-base font-bold transition-all text-gray-900 shadow-sm"
                                 onChange={(e) => handleContextChange('gender', e.target.value)}
                             >
-                                <option value="">Seleccionar...</option>
-                                <option value="Mujer">Mujer</option>
-                                <option value="Hombre">Hombre</option>
-                                <option value="Otro">Otro / No especifica</option>
+                                <option className="bg-white text-gray-900" value="">Seleccionar...</option>
+                                <option className="bg-white text-gray-900" value="Mujer">Mujer</option>
+                                <option className="bg-white text-gray-900" value="Hombre">Hombre</option>
+                                <option className="bg-white text-gray-900" value="Otro">Otro / No especifica</option>
                             </select>
                         </div>
 
@@ -180,14 +180,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModel, setModel, onNewChat, se
                         <div className="space-y-1">
                             <label className="text-xs uppercase text-gray-400 font-black">Rango de Edad</label>
                             <select
-                                className="w-full bg-gray-50 border-2 border-gray-100 rounded-lg px-3 py-3 focus:outline-none focus:border-[#691c32] text-base font-bold transition-all text-gray-800"
+                                className="w-full bg-white border-2 border-gray-200 rounded-lg px-3 py-3 focus:outline-none focus:border-[#691c32] text-base font-bold transition-all text-gray-900 shadow-sm"
                                 onChange={(e) => handleContextChange('age_group', e.target.value)}
                             >
-                                <option value="">Seleccionar...</option>
-                                <option value="Niñez">Niñez (0-12)</option>
-                                <option value="Joven">Juventud (13-29)</option>
-                                <option value="Adulto">Adulto (30-59)</option>
-                                <option value="Adulto Mayor">Adulto Mayor (60+)</option>
+                                <option className="bg-white text-gray-900" value="">Seleccionar...</option>
+                                <option className="bg-white text-gray-900" value="Niñez">Niñez (0-12)</option>
+                                <option className="bg-white text-gray-900" value="Joven">Juventud (13-29)</option>
+                                <option className="bg-white text-gray-900" value="Adulto">Adulto (30-59)</option>
+                                <option className="bg-white text-gray-900" value="Adulto Mayor">Adulto Mayor (60+)</option>
                             </select>
                         </div>
 
@@ -195,19 +195,19 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModel, setModel, onNewChat, se
                         <div className="space-y-1">
                             <label className="text-xs uppercase text-gray-400 font-bold">Ubicación / Región</label>
                             <select
-                                className="w-full bg-gray-50 border-2 border-gray-100 rounded-lg px-3 py-3 focus:outline-none focus:border-[#691c32] text-base font-bold text-gray-800"
+                                className="w-full bg-white border-2 border-gray-200 rounded-lg px-3 py-3 focus:outline-none focus:border-[#691c32] text-base font-bold text-gray-900 shadow-sm"
                                 onChange={(e) => handleContextChange('region', e.target.value)}
                             >
-                                <option value="">Seleccionar...</option>
-                                <option value="Huasteca">Huasteca</option>
-                                <option value="Zempoala">Zempoala</option>
-                                <option value="Otomí-Tepehua">Otomí-Tepehua</option>
-                                <option value="Pachuca">Pachuca</option>
-                                <option value="Tulancingo">Tulancingo</option>
+                                <option className="bg-white text-gray-900" value="">Seleccionar...</option>
+                                <option className="bg-white text-gray-900" value="Huasteca">Huasteca</option>
+                                <option className="bg-white text-gray-900" value="Zempoala">Zempoala</option>
+                                <option className="bg-white text-gray-900" value="Otomí-Tepehua">Otomí-Tepehua</option>
+                                <option className="bg-white text-gray-900" value="Pachuca">Pachuca</option>
+                                <option className="bg-white text-gray-900" value="Tulancingo">Tulancingo</option>
                             </select>
                         </div>
 
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed italic">
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed italic font-bold">
                             *La información ayuda a recomendar programas específicos para tu perfil.
                         </p>
                     </div>

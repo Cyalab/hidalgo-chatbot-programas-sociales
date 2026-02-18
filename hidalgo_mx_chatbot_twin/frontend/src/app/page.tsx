@@ -47,7 +47,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen bg-[#1a1a1a] text-white font-sans overflow-hidden">
+    <div className="flex h-screen bg-white text-gray-900 font-sans overflow-hidden">
       <Sidebar
         currentModel={currentModel}
         setModel={setModel}
