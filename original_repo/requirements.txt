@@ -1,0 +1,16 @@
+streamlit
+pdfminer.six
+langchain
+langchain-community
+langchain-huggingface
+langchain_huggingface
+langchain>=0.2.0
+sentence-transformers
+transformers
+huggingface-hub
+faiss-cpu
+python-dotenv
+torch
+accelerate
+python-dotenv
+nest_asyncio

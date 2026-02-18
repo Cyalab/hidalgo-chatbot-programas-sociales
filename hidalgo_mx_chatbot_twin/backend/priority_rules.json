@@ -1,0 +1,59 @@
+[
+  {
+    "id": "rule_huasteca",
+    "description": "Prioridad Región Huasteca",
+    "conditions": {
+      "AND": [
+        {
+          "field": "region",
+          "operator": "==",
+          "value": "Huasteca"
+        }
+      ]
+    },
+    "actions": {
+      "priority_programs": [
+        "Apoyo al Campo Huasteco",
+        "Infraestructura Indígena"
+      ]
+    }
+  },
+  {
+    "id": "rule_zempoala",
+    "description": "Prioridad Zempoala",
+    "conditions": {
+      "AND": [
+        {
+          "field": "region",
+          "operator": "==",
+          "value": "Zempoala"
+        }
+      ]
+    },
+    "actions": {
+      "priority_programs": [
+        "Beca Transporte Zempoala",
+        "Apoyo Urbano"
+      ]
+    }
+  },
+  {
+    "id": "rule_otomi_tepehua",
+    "description": "Prioridad Otomí-Tepehua",
+    "conditions": {
+      "AND": [
+        {
+          "field": "region",
+          "operator": "==",
+          "value": "Otomí-Tepehua"
+        }
+      ]
+    },
+    "actions": {
+      "priority_programs": [
+        "Artesanía Regional",
+        "Seguridad Alimentaria"
+      ]
+    }
+  }
+]

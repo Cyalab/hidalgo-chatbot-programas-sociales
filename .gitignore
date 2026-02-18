@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment variables (Secrets)
+.env
+backend/.env
+
+# Data (Heavy files)
+*.pdf
+*.zip
+
+# IDEs
+.vscode/
+.idea/
+
+# Keys (Security)
+backend/advisor_keys.json

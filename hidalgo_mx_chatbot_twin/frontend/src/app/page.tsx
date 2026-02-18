@@ -1,0 +1,70 @@
+'use client';
+
+import React, { useState } from 'react';
+import Sidebar from '@/components/Sidebar';
+import ChatInterface from '@/components/ChatInterface';
+import { sendMessage } from '@/lib/api';
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export default function Home() {
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'assistant', content: 'Hola, soy tu asistente de Seguridad Social de Hidalgo. ¿En qué puedo ayudarte hoy?' }
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [currentModel, setModel] = useState('phi-2');
+  const [userContext, setUserContext] = useState({});
+  const [isAdvisor, setAdvisor] = useState(false);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    const userMessage: Message = { role: 'user', content: input };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
+    setLoading(true);
+
+    try {
+      const data = await sendMessage(userMessage.content, currentModel, userContext, isAdvisor);
+      const aiMessage: Message = { role: 'assistant', content: data.response };
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      const errorMessage: Message = { role: 'assistant', content: 'Lo siento, hubo un error al conectar con el servidor.' };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNewChat = () => {
+    setMessages([
+      { role: 'assistant', content: 'Hola, soy tu asistente de Seguridad Social de Hidalgo. ¿En qué puedo ayudarte hoy?' }
+    ]);
+  };
+
+  return (
+    <div className="flex h-screen bg-[#0f0f0f] text-white font-sans overflow-hidden">
+      <Sidebar
+        currentModel={currentModel}
+        setModel={setModel}
+        onNewChat={handleNewChat}
+        setUserContext={setUserContext}
+        isAdvisor={isAdvisor}
+        setAdvisor={setAdvisor}
+      />
+      <div className="flex-1 flex flex-col">
+        <ChatInterface
+          messages={messages}
+          input={input}
+          setInput={setInput}
+          onSend={handleSend}
+          loading={loading}
+        />
+      </div>
+    </div>
+  );
+}
