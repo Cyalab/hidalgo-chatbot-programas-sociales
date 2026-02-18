@@ -32,8 +32,12 @@ export default function Home() {
       const data = await sendMessage(userMessage.content, currentModel, userContext, isAdvisor);
       const aiMessage: Message = { role: 'assistant', content: data.response };
       setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
-      const errorMessage: Message = { role: 'assistant', content: 'Lo siento, hubo un error al conectar con el servidor.' };
+    } catch (error: any) {
+      let errorMsg = 'Lo siento, hubo un error al conectar con el servidor.';
+      if (error.response?.status === 503) {
+        errorMsg = 'El sistema se está preparando (procesando documentos). Por favor, intenta de nuevo en un par de minutos.';
+      }
+      const errorMessage: Message = { role: 'assistant', content: errorMsg };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);

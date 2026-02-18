@@ -25,13 +25,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global chatbot instance
+# Global chatbot state
 chatbot_instance = None
+is_ready = False
+initialization_error = None
 UPLOAD_DIR = "uploaded_pdfs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# ... (global/setup)
-# Redundant RulesEngine import removed
+# ... (rest of setup)
 rules_engine = RulesEngine()
 
 class UserContext(BaseModel):
@@ -54,29 +55,40 @@ class ChatResponse(BaseModel):
     response: str
     source_documents: Optional[List[str]] = []
 
-@app.on_event("startup")
-async def startup_event():
-    global chatbot_instance
-    logger.info("Server starting up...")
-    
-    # Auto-load existing PDFs recursively
-    if os.path.exists(UPLOAD_DIR):
+async def initialize_chatbot():
+    global chatbot_instance, is_ready, initialization_error
+    try:
         from pathlib import Path
         existing_files = [str(p) for p in Path(UPLOAD_DIR).rglob("*.pdf")]
         if existing_files:
-            logger.info(f"Found {len(existing_files)} existing files in folders. Initializing chatbot...")
-            try:
-                chatbot_instance = ChatbotBackend(existing_files)
-                logger.info("\n" + "="*50 + "\n¡ASISTENTE VIRTUAL LISTO PARA PREGUNTAS!\n" + "="*50)
-            except Exception as e:
-                logger.error(f"Error al inicializar el chatbot: {e}")
-                logger.info("El servidor seguirá corriendo, pero intentará cargar los modelos al recibir la primera pregunta.")
-    else:
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
+            logger.info(f"Found {len(existing_files)} existing files. Starting background initialization...")
+            # Use threaded executor to avoid blocking the event loop for CPU-heavy tasks
+            import asyncio
+            import concurrent.futures
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                chatbot_instance = await loop.run_in_executor(pool, lambda: ChatbotBackend(existing_files))
+            
+            is_ready = True
+            logger.info("\n" + "="*50 + "\n¡ASISTENTE VIRTUAL LISTO PARA PREGUNTAS!\n" + "="*50)
+        else:
+            logger.info("No documents found to initialize. System ready but empty.")
+            is_ready = True
+    except Exception as e:
+        initialization_error = str(e)
+        is_ready = False
+        logger.error(f"Error al inicializar el chatbot: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    import asyncio
+    logger.info("Server starting up...")
+    # Fire and forget initialization
+    asyncio.create_task(initialize_chatbot())
 
 @app.post("/upload")
 async def upload_files(files: List[UploadFile] = File(...)):
-    global chatbot_instance
+    global chatbot_instance, is_ready
     saved_files = []
     
     try:
@@ -86,23 +98,25 @@ async def upload_files(files: List[UploadFile] = File(...)):
                 shutil.copyfileobj(file.file, buffer)
             saved_files.append(file_path)
         
-        # Re-initialize chatbot with ALL files (cumulative & recursive)
-        from pathlib import Path
-        all_files = [str(p) for p in Path(UPLOAD_DIR).rglob("*.pdf")]
-        logger.info(f"Re-initializing chatbot with {len(all_files)} total files (including folders)...")
-        chatbot_instance = ChatbotBackend(all_files)
+        # Trigger re-initialization in background
+        import asyncio
+        is_ready = False
+        asyncio.create_task(initialize_chatbot())
         
-        return {"message": f"Successfully uploaded {len(files)} files. Total knowledge base: {len(all_files)} files.", "filenames": [f.filename for f in files]}
+        return {"message": "Files uploaded. Optimization and indexing started in background.", "filenames": [f.filename for f in files]}
     except Exception as e:
         logger.error(f"Error calling upload: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    global chatbot_instance
+    global chatbot_instance, is_ready
+    
+    if not is_ready:
+         raise HTTPException(status_code=503, detail="El sistema se está inicializando (procesando 94 PDFs). Por favor, espera un momento y vuelve a intentarlo.")
     
     if not chatbot_instance:
-         raise HTTPException(status_code=400, detail="No documents loaded. Please upload PDFs first.")
+         raise HTTPException(status_code=400, detail="No hay documentos cargados. Por favor sube PDFs primero.")
     
     try:
         # 1. Evaluate Priorities
@@ -129,7 +143,12 @@ async def chat(request: ChatRequest):
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy" if is_ready else "initializing",
+        "ready": is_ready,
+        "error": initialization_error,
+        "message": "Chatbot ready" if is_ready else "Chatbot is processing documents in background..."
+    }
 
 @app.post("/verify-key")
 async def verify_key(key: str = Body(..., embed=True)):

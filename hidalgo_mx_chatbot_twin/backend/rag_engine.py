@@ -94,25 +94,31 @@ class ChatbotBackend:
         )
         
         total_files = len(self.pdf_files)
+        logger.info(f"⏳ INICIANDO PROCESAMIENTO DE {total_files} DOCUMENTOS...")
+        
         for i, pdf_path in enumerate(self.pdf_files):
-            logger.info(f"[{i+1}/{total_files}] Processing: {pdf_path.name}")
-            data = self.extract_structure(pdf_path)
-            for item in data:
-                content = item["contenido"]
-                if not content: continue
+            # Log progress every 10 files or first/last
+            if i % 10 == 0 or i == total_files - 1:
+                logger.info(f"📁 Progreso: {i+1}/{total_files} archivos procesados...")
+            
+            with self.gpu_memory_management():
+                data = self.extract_structure(pdf_path)
+                for item in data:
+                    content = item["contenido"]
+                    if not content: continue
+                    
+                    # Determine access level
+                    is_restricted = "manual" in pdf_path.name.lower() or "operativo" in pdf_path.name.lower()
+                    access_level = "advisor" if is_restricted else "public"
+                    
+                    # Use robust splitter
+                    chunks = text_splitter.create_documents(
+                        [content], 
+                        metadatas=[{"source": item["source_document"], "access": access_level}]
+                    )
+                    documents.extend(chunks)
                 
-                # Determine access level
-                is_restricted = "manual" in pdf_path.name.lower() or "operativo" in pdf_path.name.lower()
-                access_level = "advisor" if is_restricted else "public"
-                
-                # Use robust splitter
-                chunks = text_splitter.create_documents(
-                    [content], 
-                    metadatas=[{"source": item["source_document"], "access": access_level}]
-                )
-                documents.extend(chunks)
-                
-        logger.info(f"Processed {len(self.pdf_files)} files into {len(documents)} chunks.")
+        logger.info(f"✅ Procesamiento completado. {len(documents)} fragmentos generados.")
         return documents
 
     def initialize_components(self, model_name: str = "microsoft/phi-2") -> None:
