@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+:root {
+  --foreground-rgb: 23, 23, 23;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 245, 245, 245;
+
+  /* Official Hidalgo Color Palette Enhanced */
+  --hidalgo-guinda: #691c32;
+  --hidalgo-guinda-dark: #4a1222;
+  --hidalgo-mostaza: #bc955c;
+  --hidalgo-mostaza-light: #d6b47d;
+  --hidalgo-verde: #235b4e;
+  --hidalgo-blanco: #ffffff;
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+}
+
+body {
+  color: #171717;
+  background: #fdfdfd;
+  font-family: 'Outfit', sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+  padding: 0;
+}
+
+/* Background Mesh Gradient */
+body::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 50% 50%, rgba(188, 149, 92, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(105, 28, 50, 0.05) 0%, transparent 40%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl;
+  }
+
+  .glass-button {
+    @apply backdrop-blur-md border border-white/20 shadow-lg transition-all duration-300;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(105, 28, 50, 0.2);
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(105, 28, 50, 0.5);
+  }
+}

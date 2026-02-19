@@ -38,14 +38,14 @@ class ChatbotBackend:
         self.retriever = None
         self.prompt = None
         self.rag_chain = None
-        self.current_model_name = "microsoft/phi-2" # Default
+        self.current_model_name = "phi-2" # Default matched with frontend request
 
         self.load_environment()
         
         # Create offload directory if it doesn't exist
         os.makedirs("offload", exist_ok=True)
         
-        self.initialize_components()
+        self.initialize_components("TinyLlama/TinyLlama-1.1B-Chat-v1.0")
 
     def load_environment(self) -> None:
         load_dotenv()
@@ -88,8 +88,8 @@ class ChatbotBackend:
     def process_documents(self) -> List[Document]:
         documents = []
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
+            chunk_size=500,
+            chunk_overlap=100,
             separators=["\n\n", "\n", " ", ""]
         )
         
@@ -143,7 +143,7 @@ class ChatbotBackend:
                     torch_dtype=dtype,
                     device_map="auto",
                     model_kwargs={"offload_folder": "offload"},
-                    max_new_tokens=512,
+                    max_new_tokens=256,
                     do_sample=True,
                     temperature=0.3,
                     return_full_text=False
@@ -201,20 +201,17 @@ class ChatbotBackend:
             self.vector_store.save_local(index_path)
             logger.info(f"💾 Índice guardado en disco: {index_path}")
 
-        template = """
-        <|start_header_id|>system<|end_header_id|>
-        Eres un asistente experto en programas sociales de Hidalgo, México.
-        
-        IMPORTANTE: 
-        {priority_instruction}
-        
-        Contexto relevante de los documentos:
-        {context}
-        <|eot_id|><|start_header_id|>user<|end_header_id|>
-        {question}
-        <|eot_id|><|start_header_id|>assistant<|end_header_id|>
-        """
-        
+        # TinyLlama format
+        template = """<|system|>
+Eres un asistente experto del Gobierno de Hidalgo. Responde usando el siguiente contexto.
+Instrucción Especial: {priority_instruction}
+Contexto:
+{context}</s>
+<|user|>
+{question}</s>
+<|assistant|>
+"""
+
         self.prompt = PromptTemplate(
             input_variables=["context", "question", "priority_instruction"],
             template=template
@@ -239,7 +236,7 @@ class ChatbotBackend:
             if new_model_name == "socialite-llama":
                 hf_id = "hlab/SocialiteLlama"
             elif new_model_name == "phi-2":
-                hf_id = "microsoft/phi-2"
+                hf_id = "TinyLlama/TinyLlama-1.1B-Chat-v1.0" # Valid 4GB VRAM alternative
             
             self.current_model_name = new_model_name
             
@@ -273,7 +270,7 @@ class ChatbotBackend:
             priority_msg = f"{demographic_context}\n{priority_msg}"
             
         # Dynamic Retrieval based on Role
-        search_kwargs = {"k": 10}
+        search_kwargs = {"k": 4}
         if not is_advisor:
              # Public users ONLY see 'public' docs. Advisors see everything (no filter).
              search_kwargs["filter"] = {"access": "public"}
@@ -287,11 +284,20 @@ class ChatbotBackend:
             
         with self.gpu_memory_management():
             try:
-                return self.rag_chain.invoke({
+                response = self.rag_chain.invoke({
                     "question": question, 
                     "priority_instruction": priority_msg,
                     "context": context_str
                 })
+                
+                # Cleaning Logic for Phi-2 artifacts
+                clean_response = response.replace("<|endofgeneration|>", "").replace("<|endoftext|>", "").strip()
+                
+                # Retrieve only the part after "Output:" if the model repeated the prompt (safety net)
+                if "Output:" in clean_response:
+                    clean_response = clean_response.split("Output:")[-1].strip()
+                    
+                return clean_response
             except Exception as e:
                 logger.error(f"Error during RAG chain invocation: {e}")
                 return f"Error al generar respuesta: {str(e)}"
